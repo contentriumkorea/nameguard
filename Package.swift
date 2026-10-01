@@ -6,5 +6,5 @@ let package = Package(name: "NameGuard", platforms: [.macOS(.v13)], products: [
     .target(name: "NameGuard"),
     .target(name: "NameGuardMenu", dependencies: ["NameGuard"]),
     .executableTarget(name: "NameGuardCLI", dependencies: ["NameGuard", "NameGuardMenu"], path: "Sources/NameGuardCLI"),
-    .testTarget(name: "NameGuardTests", dependencies: ["NameGuard"])
+    .testTarget(name: "NameGuardTests", dependencies: ["NameGuard", "NameGuardMenu"])
 ])

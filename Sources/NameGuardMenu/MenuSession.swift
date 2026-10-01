@@ -16,6 +16,7 @@ final class MenuSession {
     private var paused = false
     private var error = ""
     private var renamedBeforeRestart = 0
+    var healthy: Bool { ownsLock && (paused || process?.isRunning == true) }
 
     init(directory: String, configPath: String, executable: String) {
         self.directory = directory

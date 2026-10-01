@@ -30,6 +30,7 @@ jobs:
           xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuard/Core.swift Sources/NameGuard/Watcher.swift Sources/NameGuardMenu/MenuState.swift Sources/NameGuardMenu/MenuSession.swift Tests/MenuLifecycle.swift -o .build/menu-lifecycle
           .build/menu-lifecycle "$PWD/.build/nameguard"
           python3 Tests/distribution.py
+          python3 Tests/update-install.py
       - name: Save installer ZIP
         uses: actions/upload-artifact@v4
         with:

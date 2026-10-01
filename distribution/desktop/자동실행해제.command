@@ -9,6 +9,9 @@ if [[ ! -f "$agent" && -f "$HOME/Library/LaunchAgents/local.nameguard.agent.plis
   label=local.nameguard.agent
 fi
 launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+launchctl disable "gui/$(id -u)/$label" 2>/dev/null || true
+mkdir -p "$state"
+printf '{"enabled":false}\n' > "$state/login.json"
 if [[ -f "$agent" ]]; then
   mkdir -p "$state"
   mv "$agent" "$state/disabled-agent-$(date +%Y%m%d-%H%M%S).plist"

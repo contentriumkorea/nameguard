@@ -12,7 +12,8 @@ func option(_ flag: String) -> String? {
     return arguments[index + 1]
 }
 let home = FileManager.default.homeDirectoryForCurrentUser.path
-let directory = option("--state-dir") ?? home + "/Library/Application Support/NameGuard"
+let executable = Bundle.main.executablePath ?? CommandLine.arguments[0]
+let directory = option("--state-dir") ?? nameGuardDefaultDirectory(executable: executable, home: home)
 let configPath = option("--config") ?? directory + "/config.json"
 do {
     if arguments.contains("--help") {
@@ -20,7 +21,7 @@ do {
         exit(0)
     }
     if arguments.isEmpty || arguments.contains("--menu") {
-        runMenuApp(directory: directory, configPath: configPath, executable: Bundle.main.executablePath ?? CommandLine.arguments[0])
+        runMenuApp(directory: directory, configPath: configPath, executable: executable)
         exit(0)
     }
     var config = Configuration()

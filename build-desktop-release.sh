@@ -7,7 +7,7 @@ mkdir -p .build/desktop-release dist
 release_stage="$(mktemp -d "$PWD/.build/desktop-release/stage.XXXXXX")"
 package="$release_stage/NameGuard-Desktop"
 app="$package/NameGuard Desktop.app"
-mkdir -p "$app/Contents/MacOS"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 for cpu in arm64 x86_64; do
   xcrun swiftc -O -sdk "$sdk" -target "$cpu-apple-macosx13.0" \
     Sources/NameGuard/Core.swift Sources/NameGuard/Watcher.swift Sources/NameGuardMenu/*.swift Sources/NameGuardCLI/main.swift \
@@ -15,6 +15,7 @@ for cpu in arm64 x86_64; do
 done
 xcrun lipo -create "$release_stage/nameguard-arm64" "$release_stage/nameguard-x86_64" -output "$app/Contents/MacOS/nameguard"
 cp app-info.plist "$app/Contents/Info.plist"
+cp resources/update.sh "$app/Contents/Resources/update.sh"
 plutil -replace CFBundleIdentifier -string local.nameguard.desktop.app "$app/Contents/Info.plist"
 plutil -replace CFBundleName -string 'NameGuard Desktop' "$app/Contents/Info.plist"
 plutil -insert LSMinimumSystemVersion -string 13.0 "$app/Contents/Info.plist"

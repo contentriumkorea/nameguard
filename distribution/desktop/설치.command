@@ -74,6 +74,7 @@ plutil -insert StandardOutPath -string "$state/launchd.stdout.log" "$agent"
 plutil -insert StandardErrorPath -string "$state/launchd.stderr.log" "$agent"
 chmod 644 "$agent"
 plutil -lint "$agent"
+printf '{"enabled":true}\n' > "$state/login.json"
 
 if $staging; then
   echo "설치 파일 준비 완료 (자동 실행 등록 없음): $install_root"
@@ -84,7 +85,9 @@ if ! "$app/Contents/MacOS/nameguard" --help; then
   echo 'macOS가 실행을 차단했을 수 있습니다. 동봉된 먼저 읽어주세요.txt의 보안 안내를 확인한 후 설치를 다시 실행하세요.'
   exit 1
 fi
+launchctl enable "gui/$(id -u)/$label"
 launchctl bootstrap "gui/$(id -u)" "$agent"
+launchctl kickstart "gui/$(id -u)/$label"
 echo ''
 echo '설치 및 자동 실행 등록을 완료했습니다. 이 터미널 창은 닫아도 됩니다.'
 echo 'Desktop 접근 허용 요청이 뜨면 허용해 주세요. 앞으로 로그인할 때 자동 실행됩니다.'
