@@ -35,6 +35,8 @@ with tempfile.TemporaryDirectory(prefix="nameguard-distribution-") as temporary:
     assert set(architectures.split()) == {"arm64", "x86_64"}
     roots = subprocess.check_output([str(binary), "--roots", "--state-dir", str(state)], text=True)
     assert roots.strip() == str(desktop)
+    direct_roots = subprocess.check_output([str(binary), "--roots"], text=True)
+    assert direct_roots.strip() == str(desktop), "Opening the installed app directly must use the installer's settings"
     custom = recipient / "My folders"
     custom.mkdir()
     config["roots"] = [str(custom)]
