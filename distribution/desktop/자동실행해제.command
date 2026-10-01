@@ -2,7 +2,13 @@
 set -euo pipefail
 state="$HOME/Library/Application Support/NameGuardDesktop"
 agent="$HOME/Library/LaunchAgents/local.nameguard.desktop.agent.plist"
-launchctl bootout "gui/$(id -u)/local.nameguard.desktop.agent" 2>/dev/null || true
+label=local.nameguard.desktop.agent
+if [[ ! -f "$agent" && -f "$HOME/Library/LaunchAgents/local.nameguard.agent.plist" ]]; then
+  state="$HOME/Library/Application Support/NameGuard"
+  agent="$HOME/Library/LaunchAgents/local.nameguard.agent.plist"
+  label=local.nameguard.agent
+fi
+launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
 if [[ -f "$agent" ]]; then
   mkdir -p "$state"
   mv "$agent" "$state/disabled-agent-$(date +%Y%m%d-%H%M%S).plist"

@@ -47,8 +47,12 @@ if [[ "$bundle_id" == local.nameguard.app ]]; then
 fi
 if [[ ! -f "$state/config.json" ]]; then
   cp "$PWD/desktop-config.json" "$state/config.json"
-  plutil -replace roots -json '[]' "$state/config.json"
-  plutil -insert roots.0 -string "$install_root/Desktop" "$state/config.json"
+  if [[ "$bundle_id" == local.nameguard.app ]]; then
+    plutil -remove roots "$state/config.json"
+  else
+    plutil -replace roots -json '[]' "$state/config.json"
+    plutil -insert roots.0 -string "$install_root/Desktop" "$state/config.json"
+  fi
   plutil -convert json "$state/config.json"
 else
   cp "$state/config.json" "$state/config-backup-$(date +%Y%m%d-%H%M%S).json"

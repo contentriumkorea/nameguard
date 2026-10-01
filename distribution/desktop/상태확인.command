@@ -1,8 +1,13 @@
 #!/bin/bash
 set -uo pipefail
 state="$HOME/Library/Application Support/NameGuardDesktop"
-if launchctl print "gui/$(id -u)/local.nameguard.desktop.agent" 2>/dev/null | /usr/bin/grep -q 'state = running'; then
-  echo '감시 프로그램: 실행 중'
+label=local.nameguard.desktop.agent
+if [[ ! -f "$HOME/Library/LaunchAgents/$label.plist" && -f "$HOME/Library/LaunchAgents/local.nameguard.agent.plist" ]]; then
+  state="$HOME/Library/Application Support/NameGuard"
+  label=local.nameguard.agent
+fi
+if launchctl print "gui/$(id -u)/$label" 2>/dev/null | /usr/bin/grep -q 'state = running'; then
+  echo '메뉴 앱: 실행 중 (실제 감시 상태는 상단 바 메뉴에서 확인하세요.)'
 else
   echo '감시 프로그램: 실행 중이 아닙니다. 설치 또는 macOS 실행 권한을 확인해 주세요.'
 fi

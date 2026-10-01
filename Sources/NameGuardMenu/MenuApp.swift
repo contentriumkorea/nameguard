@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Darwin
 
 final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let session: MenuSession
@@ -8,6 +9,7 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var timer: Timer?
     private var snapshot = MenuSnapshot(status: [:], runningPID: nil, paused: false)
     private var stopping = false
+    private var terminationSignal: DispatchSourceSignal?
 
     init(directory: String, configPath: String, executable: String) {
         session = MenuSession(directory: directory, configPath: configPath, executable: executable)
@@ -20,6 +22,11 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.button?.toolTip = "NameGuard · 시작 중"
         updateMenu()
         perform { try self.session.start() }
+        signal(SIGTERM, SIG_IGN)
+        let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        source.setEventHandler { NSApp.terminate(nil) }
+        source.resume()
+        terminationSignal = source
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.refresh() }
         // The status stays fresh even while an NSMenu is tracking mouse events.
         if let timer { RunLoop.main.add(timer, forMode: .common) }
