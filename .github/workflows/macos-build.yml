@@ -3,7 +3,7 @@ name: NameGuard macOS
 on:
   workflow_dispatch:
   push:
-    branches: [main, update-autostart]
+    branches: [main]
   pull_request:
 
 permissions:

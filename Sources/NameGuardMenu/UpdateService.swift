@@ -27,6 +27,7 @@ struct UpdateRelease {
               value["html_url"] as? String == repository + "/tag/" + tag,
               let assets = value["assets"] as? [[String: Any]] else { throw serviceError("새 버전 정보를 확인할 수 없습니다.") }
         let version = String(tag.dropFirst()); _ = try numbers(version)
+        guard version.split(separator: ".").count == 3 else { throw serviceError("새 버전 정보를 확인할 수 없습니다.") }
         guard let asset = assets.first(where: { $0["name"] as? String == "NameGuard.zip" }),
               asset["browser_download_url"] as? String == repository + "/download/" + tag + "/NameGuard.zip",
               let url = URL(string: repository + "/download/" + tag + "/NameGuard.zip"),
@@ -73,6 +74,12 @@ final class UpdateService {
               parent.deletingLastPathComponent().resolvingSymlinksInPath().path == base.resolvingSymlinksInPath().path else { return nil }
         return url
     }
+    private static func validateExtractedLinks(_ directory: URL) throws {
+        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: [.isSymbolicLinkKey]) else { throw serviceError("앱 압축을 풀지 못했습니다.") }
+        for case let url as URL in enumerator {
+            if try url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink == true { throw serviceError("업데이트에 잘못된 링크가 있습니다.") }
+        }
+    }
     func prepare(_ release: UpdateRelease) async throws -> (workspace: URL, candidate: URL, token: String) {
         let fm = FileManager.default
         let realBundle = bundle.resolvingSymlinksInPath()
@@ -98,10 +105,7 @@ final class UpdateService {
             try Self.validateEntries(entries)
             let unpacked = workspace.appendingPathComponent("unpacked")
             try runCommand("/usr/bin/ditto", ["-x", "-k", zip.path, unpacked.path])
-            guard let enumerator = fm.enumerator(at: unpacked, includingPropertiesForKeys: [.isSymbolicLinkKey]) else { throw serviceError("앱 압축을 풀지 못했습니다.") }
-            for case let url as URL in enumerator {
-                if try url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink == true { throw serviceError("업데이트에 잘못된 링크가 있습니다.") }
-            }
+            try Self.validateExtractedLinks(unpacked)
             let app = unpacked.appendingPathComponent("NameGuard-Desktop/NameGuard Desktop.app")
             let info = try PropertyListSerialization.propertyList(from: Data(contentsOf: app.appendingPathComponent("Contents/Info.plist")), format: nil) as? [String: Any]
             guard info?["CFBundleIdentifier"] as? String == "local.nameguard.desktop.app",
