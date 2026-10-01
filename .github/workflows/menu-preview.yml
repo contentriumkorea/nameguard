@@ -22,38 +22,37 @@ jobs:
           source += r'''
           extension MenuApp {
               func scheduleCapture() {
-                  DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-                      print("Preview actual status: \(self.snapshot.title), processed: \(self.snapshot.renamed)")
-                      self.captureMenu("01-watching") {
+                  let name = ProcessInfo.processInfo.environment["NAMEGUARD_CAPTURE_SCREEN"] ?? "01-watching"
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                      if name == "02-paused" {
                           self.togglePause()
-                          DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                              print("Preview actual status: \(self.snapshot.title)")
-                              self.captureMenu("02-paused") {
-                                  self.addFolder()
-                                  self.captureScreen("03-folder-picker") { NSApp.terminate(nil) }
-                              }
-                          }
-                      }
+                          DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.captureMenu(name) }
+                      } else if name == "03-folder-picker" {
+                          self.addFolder()
+                          self.captureScreen(name, cropped: false)
+                      } else { self.captureMenu(name) }
                   }
               }
-              func captureMenu(_ name: String, completion: @escaping () -> Void) {
-                  self.captureScreen(name) {
-                      self.item.menu?.cancelTracking()
-                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: completion)
-                  }
+              func captureMenu(_ name: String) {
+                  print("Preview actual status: \(self.snapshot.title), processed: \(self.snapshot.renamed)")
+                  self.captureScreen(name, cropped: true)
                   if let menu = self.item.menu { self.item.popUpMenu(menu) }
               }
-              func captureScreen(_ name: String, completion: @escaping () -> Void) {
-                  DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+              func captureScreen(_ name: String, cropped: Bool) {
+                  let width = NSScreen.main?.frame.width ?? 1024
+                  let region = String(format: "%.0f,0,340,360", width - 340)
+                  DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) {
                       let capture = Process()
                       capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-                      capture.arguments = ["-x", "-t", "png", FileManager.default.currentDirectoryPath + "/.build/preview/screens/" + name + ".png"]
+                      capture.arguments = ["-x", "-t", "png"]
+                      if cropped { capture.arguments! += ["-R", region] }
+                      capture.arguments!.append(FileManager.default.currentDirectoryPath + "/.build/preview/screens/" + name + ".png")
                       do {
                           try capture.run()
                           capture.waitUntilExit()
                           print("Screenshot \(name): exit \(capture.terminationStatus)")
-                      } catch { print("Screenshot failed: \(error)") }
-                      DispatchQueue.main.async(execute: completion)
+                          exit(capture.terminationStatus)
+                      } catch { print("Screenshot failed: \(error)"); exit(1) }
                   }
               }
           }
@@ -70,14 +69,17 @@ jobs:
           cp app-info.plist .build/preview/NameGuard.app/Contents/Info.plist
           codesign --force --sign - .build/preview/NameGuard.app
           python3 - <<'PY'
-          import subprocess, pathlib
+          import subprocess, pathlib, os, time
           binary = pathlib.Path(".build/preview/NameGuard.app/Contents/MacOS/nameguard").resolve()
-          app = subprocess.Popen([str(binary), "--menu", "--config", "/tmp/NameGuard Preview/config.json", "--state-dir", "/tmp/NameGuard Preview/state"])
-          try:
-              app.wait(timeout=65)
-          except subprocess.TimeoutExpired:
-              app.terminate()
-              app.wait(timeout=15)
+          for name in ["01-watching", "02-paused", "03-folder-picker"]:
+              env = dict(os.environ, NAMEGUARD_CAPTURE_SCREEN=name)
+              app = subprocess.Popen([str(binary), "--menu", "--config", "/tmp/NameGuard Preview/config.json", "--state-dir", "/tmp/NameGuard Preview/state"], env=env)
+              try:
+                  app.wait(timeout=35)
+              except subprocess.TimeoutExpired:
+                  app.kill()
+                  app.wait(timeout=5)
+              time.sleep(3)  # Let the worker's existing parent-PID watchdog exit before restarting.
           screens = sorted(pathlib.Path(".build/preview/screens").glob("*.png"))
           print("Captured files:", [p.name for p in screens])
           assert len(screens) == 3, "GUI capture unavailable in this hosted macOS session"
