@@ -4,8 +4,8 @@
 
 ## 사용하기
 
-1. GitHub **Actions → NameGuard macOS → 성공한 실행 → NameGuard-macOS**에서 설치 ZIP을 받습니다. GitHub 로그인이 필요합니다.
-2. 다운로드한 묶음 안의 `NameGuard-Desktop.zip`을 풀고 `설치.command`를 실행합니다.
+1. [NameGuard.zip 다운로드](https://github.com/contentriumkorea/nameguard/releases/download/v1.1.0/NameGuard.zip)를 누릅니다.
+2. 압축을 풀고 `설치.command`를 실행합니다.
 3. 맥 상단 바의 **NameGuard** 아이콘을 누릅니다.
 
 새 사용자는 바탕화면부터 감시합니다. **폴더 추가…**에서 여러 폴더를 고를 수 있고, 폴더 이름을 누르면 **감시에서 제거**할 수 있습니다. 하위 폴더도 포함합니다. 선택한 폴더와 일시중지 상태는 다음 로그인에도 유지됩니다.
