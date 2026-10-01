@@ -1,0 +1,91 @@
+name: NameGuard screenshots
+on:
+  push:
+    branches: [preview-screenshots]
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture the actual AppKit menu and folder picker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/preview/screens .build/preview/NameGuard.app/Contents/MacOS
+          python3 - <<'PY'
+          import pathlib, json, unicodedata
+          source = pathlib.Path("Sources/NameGuardMenu/MenuApp.swift").read_text()
+          source = source.replace("        updateMenu()\n        perform", "        updateMenu()\n        scheduleCapture()\n        perform", 1)
+          source += r'''
+          extension MenuApp {
+              func scheduleCapture() {
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                      print("Preview actual status: \(self.snapshot.title), processed: \(self.snapshot.renamed)")
+                      self.captureMenu("01-watching") {
+                          self.togglePause()
+                          DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                              print("Preview actual status: \(self.snapshot.title)")
+                              self.captureMenu("02-paused") {
+                                  self.addFolder()
+                                  self.captureScreen("03-folder-picker") { NSApp.terminate(nil) }
+                              }
+                          }
+                      }
+                  }
+              }
+              func captureMenu(_ name: String, completion: @escaping () -> Void) {
+                  self.captureScreen(name) {
+                      self.item.menu?.cancelTracking()
+                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: completion)
+                  }
+                  if let menu = self.item.menu { self.item.popUpMenu(menu) }
+              }
+              func captureScreen(_ name: String, completion: @escaping () -> Void) {
+                  DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+                      let capture = Process()
+                      capture.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+                      capture.arguments = ["-x", "-t", "png", FileManager.default.currentDirectoryPath + "/.build/preview/screens/" + name + ".png"]
+                      do {
+                          try capture.run()
+                          capture.waitUntilExit()
+                          print("Screenshot \(name): exit \(capture.terminationStatus)")
+                      } catch { print("Screenshot failed: \(error)") }
+                      DispatchQueue.main.async(execute: completion)
+                  }
+              }
+          }
+          '''
+          pathlib.Path(".build/preview/MenuApp.swift").write_text(source)
+          fixture = pathlib.Path("/tmp/NameGuard Preview")
+          folder = fixture / "Desktop"
+          folder.mkdir(parents=True, exist_ok=True)
+          (folder / unicodedata.normalize("NFD", "한글문서.txt")).write_text("Temporary screenshot fixture only")
+          config = {"roots": [str(folder)], "quietSeconds": 1, "directoryQuietSeconds": 2, "excludedPaths": [], "protectedApps": []}
+          (fixture / "config.json").write_text(json.dumps(config))
+          PY
+          xcrun swiftc -sdk "$(xcrun --sdk macosx --show-sdk-path)" Sources/NameGuard/Core.swift Sources/NameGuard/Watcher.swift Sources/NameGuardMenu/MenuState.swift Sources/NameGuardMenu/MenuSession.swift .build/preview/MenuApp.swift Sources/NameGuardCLI/main.swift -o .build/preview/NameGuard.app/Contents/MacOS/nameguard
+          cp app-info.plist .build/preview/NameGuard.app/Contents/Info.plist
+          codesign --force --sign - .build/preview/NameGuard.app
+          python3 - <<'PY'
+          import subprocess, pathlib
+          binary = pathlib.Path(".build/preview/NameGuard.app/Contents/MacOS/nameguard").resolve()
+          app = subprocess.Popen([str(binary), "--menu", "--config", "/tmp/NameGuard Preview/config.json", "--state-dir", "/tmp/NameGuard Preview/state"])
+          try:
+              app.wait(timeout=65)
+          except subprocess.TimeoutExpired:
+              app.terminate()
+              app.wait(timeout=15)
+          screens = sorted(pathlib.Path(".build/preview/screens").glob("*.png"))
+          print("Captured files:", [p.name for p in screens])
+          assert len(screens) == 3, "GUI capture unavailable in this hosted macOS session"
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: NameGuard-screenshots
+          path: .build/preview/screens/*.png
+          if-no-files-found: warn
+          retention-days: 7
