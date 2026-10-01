@@ -55,6 +55,11 @@ final class ServicesTests: XCTestCase {
         let plist = try PropertyListSerialization.propertyList(from: Data(contentsOf: login.agentURL), format: nil) as! [String: Any]
         XCTAssertEqual(plist["ProgramArguments"] as? [String], [login.executable, "--menu", "--state-dir", base.path])
         XCTAssertEqual(plist["RunAtLoad"] as? Bool, true)
+        var broken = plist; broken["RunAtLoad"] = false
+        try PropertyListSerialization.data(fromPropertyList: broken, format: .xml, options: 0).write(to: login.agentURL)
+        XCTAssertFalse(login.isEnabled, "A plist that does not start at login must not appear checked")
+        try login.setEnabled(true)
+        XCTAssertTrue(login.isEnabled)
         try login.setEnabled(false)
         XCTAssertFalse(login.isEnabled)
         XCTAssertFalse(FileManager.default.fileExists(atPath: login.agentURL.path))

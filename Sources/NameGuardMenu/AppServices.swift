@@ -51,7 +51,10 @@ final class LoginStartup {
         agentURL = URL(fileURLWithPath: home + "/Library/LaunchAgents/\(label).plist")
     }
     var isEnabled: Bool {
-        guard FileManager.default.fileExists(atPath: agentURL.path) else { return false }
+        guard let data = try? Data(contentsOf: agentURL),
+              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+              plist["Label"] as? String == label, plist["RunAtLoad"] as? Bool == true,
+              plist["ProgramArguments"] as? [String] == [executable, "--menu", "--state-dir", directory] else { return false }
         guard let output = try? run("/bin/launchctl", ["print-disabled", "gui/\(getuid())"]) else { return false }
         return !output.contains("\"\(label)\" => true")
     }
