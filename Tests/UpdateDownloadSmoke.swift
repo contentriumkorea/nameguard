@@ -17,8 +17,19 @@ import CryptoKit
         try runCommand("/usr/bin/plutil", ["-replace", "CFBundleShortVersionString", "-string", "1.0.0", bundle.appendingPathComponent("Contents/Info.plist").path])
         try runCommand("/usr/bin/codesign", ["--force", "--sign", "-", bundle.path])
         let updater = UpdateService(directory: base.appendingPathComponent("state").path, bundle: bundle)
-        let live = try await updater.check()
-        precondition(live != nil && (try! UpdateRelease.isNewer(live!.version, than: "1.0.0")), "Live public GitHub version must be detected")
+        if let token = ProcessInfo.processInfo.environment["GH_TOKEN"] {
+            // Authenticate only this CI metadata check. The shipped app and ZIP download use no token.
+            var request = URLRequest(url: URL(string: "https://api.github.com/repos/contentriumkorea/nameguard/releases/latest")!)
+            request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+            request.setValue("NameGuard-verification", forHTTPHeaderField: "User-Agent")
+            let (liveData, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw serviceError("CI metadata lookup failed") }
+            let live = try UpdateRelease.parse(liveData)
+            precondition(try! UpdateRelease.isNewer(live.version, than: "1.0.0"))
+        } else {
+            let live = try await updater.check()
+            precondition(live != nil && (try! UpdateRelease.isNewer(live!.version, than: "1.0.0")), "Live public GitHub version must be detected")
+        }
         let data = try Data(contentsOf: zip)
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         let release = UpdateRelease(version: "1.2.0", url: serverURL, size: data.count, sha256: digest)
