@@ -1,0 +1,7 @@
+{
+  "roots": [],
+  "quietSeconds": 10,
+  "directoryQuietSeconds": 30,
+  "excludedPaths": [],
+  "protectedApps": ["Adobe Premiere", "After Effects", "Adobe Media Encoder", "DaVinci Resolve", "Final Cut", "Logic Pro", "Adobe Photoshop", "Adobe Illustrator", "Adobe InDesign", "Lightroom"]
+}

@@ -1,0 +1,16 @@
+.build/
+.DS_Store
+core
+dist/
+prebuilt/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.p12
+*.p8
+*.key
+# Local handoff records and the manifest for the original archive.
+WINDOWS-START-HERE.md
+SHA256-MANIFEST.json
+scripts/package-windows-handoff.py

@@ -1,0 +1,39 @@
+name: NameGuard macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build universal app and run portable macOS checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          export NAMEGUARD_SDK="$(xcrun --sdk macosx --show-sdk-path)"
+          bash build-desktop-release.sh
+          bash build.sh
+          swift test
+          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuard/Core.swift Tests/Smoke.swift -o .build/smoke-ci
+          .build/smoke-ci
+          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuardMenu/MenuState.swift Tests/MenuSmoke.swift -o .build/menu-smoke
+          .build/menu-smoke
+          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuard/Core.swift Sources/NameGuard/Watcher.swift Sources/NameGuardMenu/MenuState.swift Sources/NameGuardMenu/MenuSession.swift Tests/MenuLifecycle.swift -o .build/menu-lifecycle
+          .build/menu-lifecycle "$PWD/.build/nameguard"
+          python3 Tests/distribution.py
+      - name: Save installer ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: NameGuard-macOS
+          path: dist/NameGuard-Desktop.zip
+          if-no-files-found: error
+          retention-days: 14
