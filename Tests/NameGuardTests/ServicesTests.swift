@@ -29,6 +29,19 @@ final class ServicesTests: XCTestCase {
         let release = UpdateRelease(version: "1.3.0", url: URL(string: "https://example.com")!, size: 3, sha256: String(repeating: "a", count: 64))
         XCTAssertThrowsError(try UpdateService.validateDownload(Data("abc".utf8), release: release))
     }
+    func testHealthReceiptAcceptsSamePhysicalDirectoryAndRejectsOutsidePaths() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let root = base.appendingPathComponent("state"), token = UUID().uuidString
+        let receipt = root.appendingPathComponent("updates/" + token + "/health")
+        try FileManager.default.createDirectory(at: receipt.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let alias = base.appendingPathComponent("alias")
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: root)
+        XCTAssertNotNil(UpdateService.healthReceipt(receipt.path, directory: alias.path))
+        XCTAssertNotNil(UpdateService.healthReceipt(receipt.resolvingSymlinksInPath().path, directory: root.standardizedFileURL.path))
+        XCTAssertNil(UpdateService.healthReceipt(base.appendingPathComponent("outside/" + token + "/health").path, directory: root.path))
+        XCTAssertNil(UpdateService.healthReceipt(root.appendingPathComponent("updates/not-a-token/health").path, directory: root.path))
+    }
     func testLoginPreferenceKeepsConfigAndPauseUntouched() throws {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: base) }

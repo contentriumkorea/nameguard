@@ -65,6 +65,14 @@ final class UpdateService {
                   !entry.contains("\\"), !entry.split(separator: "/").contains("..") else { throw serviceError("잘못된 업데이트 압축 파일입니다.") }
         }
     }
+    static func healthReceipt(_ path: String, directory: String) -> URL? {
+        let url = URL(fileURLWithPath: path)
+        let parent = url.deletingLastPathComponent()
+        let base = URL(fileURLWithPath: directory).appendingPathComponent("updates")
+        guard url.lastPathComponent == "health", UUID(uuidString: parent.lastPathComponent) != nil,
+              parent.deletingLastPathComponent().resolvingSymlinksInPath().path == base.resolvingSymlinksInPath().path else { return nil }
+        return url
+    }
     func prepare(_ release: UpdateRelease) async throws -> (workspace: URL, candidate: URL, token: String) {
         let fm = FileManager.default
         let realBundle = bundle.resolvingSymlinksInPath()

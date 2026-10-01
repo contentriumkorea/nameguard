@@ -173,12 +173,8 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let index = arguments.firstIndex(of: "--update-health"), index + 1 < arguments.count,
               let versionIndex = arguments.firstIndex(of: "--update-version"), versionIndex + 1 < arguments.count,
               let updater, arguments[versionIndex + 1] == updater.version else { return }
-        let url = URL(fileURLWithPath: arguments[index + 1]).standardizedFileURL
-        let base = URL(fileURLWithPath: session.directory).appendingPathComponent("updates").standardizedFileURL
-        guard url.lastPathComponent == "health", url.deletingLastPathComponent().deletingLastPathComponent().path == base.path,
-              UUID(uuidString: url.deletingLastPathComponent().lastPathComponent) != nil,
-              session.healthy else {
-            fputs("NameGuard update: health receipt rejected; path=\(url.path); base=\(base.path); parent=\(url.deletingLastPathComponent().deletingLastPathComponent().path); token=\(url.deletingLastPathComponent().lastPathComponent); healthy=\(session.healthy)\n", stderr)
+        guard let url = UpdateService.healthReceipt(arguments[index + 1], directory: session.directory), session.healthy else {
+            fputs("NameGuard update: health receipt rejected\n", stderr)
             return
         }
         try? Data(updater.version.utf8).write(to: url, options: .atomic)
