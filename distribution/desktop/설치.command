@@ -40,7 +40,15 @@ fi
 echo 'NameGuard를 설치합니다. 상단 바에서 감시 폴더를 선택할 수 있습니다.'
 mkdir -p "$install_root/Applications" "$state" "$install_root/Library/LaunchAgents"
 chmod 700 "$state"
-if ! $staging; then launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true; fi
+if ! $staging; then
+  launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+  attempts=0
+  while launchctl print "gui/$(id -u)/$label" >/dev/null 2>&1; do
+    attempts=$((attempts + 1))
+    [[ "$attempts" -lt 150 ]] || { echo '이전 NameGuard의 종료를 기다리지 못했습니다. 잠시 후 다시 설치해 주세요.'; exit 1; }
+    sleep 0.1
+  done
+fi
 /usr/bin/ditto "$payload" "$app"
 if [[ "$bundle_id" == local.nameguard.app ]]; then
   plutil -replace CFBundleIdentifier -string "$bundle_id" "$app/Contents/Info.plist"

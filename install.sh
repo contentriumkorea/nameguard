@@ -9,6 +9,12 @@ label=local.nameguard.agent
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$state" "$HOME/Library/LaunchAgents"
 chmod 700 "$state"
 launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+attempts=0
+while launchctl print "gui/$(id -u)/$label" >/dev/null 2>&1; do
+  attempts=$((attempts + 1))
+  [[ "$attempts" -lt 150 ]] || { echo 'Previous NameGuard is still stopping. Retry shortly.'; exit 1; }
+  sleep 0.1
+done
 cp .build/nameguard "$app/Contents/MacOS/nameguard"
 cp app-info.plist "$app/Contents/Info.plist"
 cp resources/update.sh "$app/Contents/Resources/update.sh"

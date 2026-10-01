@@ -4,8 +4,8 @@
 <key>CFBundleIdentifier</key><string>local.nameguard.app</string>
 <key>CFBundleName</key><string>NameGuard</string>
 <key>CFBundleExecutable</key><string>nameguard</string>
-<key>CFBundleVersion</key><string>3</string>
-<key>CFBundleShortVersionString</key><string>1.2.0</string>
+<key>CFBundleVersion</key><string>4</string>
+<key>CFBundleShortVersionString</key><string>1.2.1</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>LSUIElement</key><true/>
 <key>NSDesktopFolderUsageDescription</key><string>바탕화면의 한글 파일명을 NFC로 정규화합니다.</string>

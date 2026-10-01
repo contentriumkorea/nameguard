@@ -1,6 +1,7 @@
 """Real app replacement and failed-start rollback in an isolated macOS folder."""
 import json
 import os
+import plistlib
 from pathlib import Path
 import shutil
 import signal
@@ -15,6 +16,8 @@ with tempfile.TemporaryDirectory(prefix='nameguard-update-') as temporary:
     base = Path(temporary).resolve()
     subprocess.run(['/usr/bin/ditto', '-x', '-k', str(archive), str(base / 'unpacked')], check=True)
     payload = base / 'unpacked/NameGuard-Desktop/NameGuard Desktop.app'
+    with (payload / 'Contents/Info.plist').open('rb') as handle:
+        version = plistlib.load(handle)['CFBundleShortVersionString']
     for success in (True, False):
         root = base / ('success' if success else 'rollback')
         target = root / "Applications/NameGuard Desktop.app"
@@ -41,7 +44,7 @@ with tempfile.TemporaryDirectory(prefix='nameguard-update-') as temporary:
         stopped = subprocess.Popen(['/usr/bin/true'])
         stopped.wait()
         try:
-            result = subprocess.run(['/bin/bash', str(helper), str(stopped.pid), str(target), str(candidate), str(workspace), token, '1.2.0', str(state), '100'], timeout=30)
+            result = subprocess.run(['/bin/bash', str(helper), str(stopped.pid), str(target), str(candidate), str(workspace), token, version, str(state), '100'], timeout=30)
             if result.returncode != (0 if success else 1):
                 print('Update helper returned', result.returncode, flush=True)
                 if (workspace / 'app.log').exists():
@@ -54,7 +57,7 @@ with tempfile.TemporaryDirectory(prefix='nameguard-update-') as temporary:
             assert json.loads((state / 'login.json').read_text())['enabled'] is False
             if success:
                 assert (workspace / 'previous.app/old-marker').exists()
-                assert (workspace / 'health').read_text() == '1.2.0'
+                assert (workspace / 'health').read_text() == version
             print('PASS: real native app ' + ('replacement, health acknowledgement and relaunch' if success else 'failed-start rollback and old app relaunch') + '; folders/pause/startup preference preserved', flush=True)
         finally:
             if (workspace / 'app.pid').exists():
