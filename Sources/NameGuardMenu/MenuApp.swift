@@ -28,7 +28,11 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.button?.toolTip = "NameGuard · 시작 중"
         updateMenu()
         perform {
-            try self.session.start()
+            do { try self.session.start() }
+            catch let error as NSError where error.domain == "NameGuard" && error.code == 3 {
+                DispatchQueue.main.async { NSApp.terminate(nil) }
+                return
+            }
             do { try self.login.ensureRegistered() } catch { self.session.report(error) }
             self.queue.asyncAfter(deadline: .now() + 2) { self.acknowledgeUpdate() }
         }

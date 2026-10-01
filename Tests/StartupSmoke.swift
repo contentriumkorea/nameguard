@@ -18,11 +18,16 @@ import Darwin
         try runCommand("/bin/launchctl", ["disable", target])
         try login.setEnabled(true)
         precondition(login.isEnabled, "Previously disabled launchd job must be enabled again")
-        for _ in 0..<2 {
+        for cycle in 0..<2 {
             try runCommand("/bin/launchctl", ["bootstrap", "gui/\(getuid())", login.agentURL.path])
             Thread.sleep(forTimeInterval: 3)
             let running = try runCommand("/bin/launchctl", ["print", target])
             precondition(running.contains("state = running"), "RunAtLoad must start the real native menu app")
+            if cycle == 1 {
+                try login.setEnabled(false)
+                let stillRunning = try runCommand("/bin/launchctl", ["print", target])
+                precondition(stillRunning.contains("state = running"), "Disabling next-login startup must keep the current app running")
+            }
             try runCommand("/bin/launchctl", ["bootout", target])
             Thread.sleep(forTimeInterval: 2)
         }

@@ -35,6 +35,8 @@ jobs:
           python3 Tests/update-install.py
           xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuardMenu/AppServices.swift Tests/StartupSmoke.swift -o .build/startup-smoke
           .build/startup-smoke "$PWD/.build/nameguard"
+          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuardMenu/AppServices.swift Sources/NameGuardMenu/UpdateService.swift Tests/UpdateDownloadSmoke.swift -o .build/update-download-smoke
+          python3 Tests/update-download.py
       - name: Save installer ZIP
         uses: actions/upload-artifact@v4
         with:
