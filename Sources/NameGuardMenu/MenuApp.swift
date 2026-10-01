@@ -177,7 +177,10 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let base = URL(fileURLWithPath: session.directory).appendingPathComponent("updates").standardizedFileURL
         guard url.lastPathComponent == "health", url.deletingLastPathComponent().deletingLastPathComponent().path == base.path,
               UUID(uuidString: url.deletingLastPathComponent().lastPathComponent) != nil,
-              session.healthy else { fputs("NameGuard update: health receipt rejected\n", stderr); return }
+              session.healthy else {
+            fputs("NameGuard update: health receipt rejected; path=\(url.path); base=\(base.path); parent=\(url.deletingLastPathComponent().deletingLastPathComponent().path); token=\(url.deletingLastPathComponent().lastPathComponent); healthy=\(session.healthy)\n", stderr)
+            return
+        }
         try? Data(updater.version.utf8).write(to: url, options: .atomic)
     }
     @objc private func quit() { NSApp.terminate(nil) }
