@@ -50,7 +50,7 @@ import Darwin
         session.stop()
         precondition(session.snapshot().title == "감시 중단")
         let saved = try JSONDecoder().decode(Configuration.self, from: Data(contentsOf: configURL))
-        precondition(saved.roots == [b.path])
+        precondition(saved.roots == [physicalPath(b.path)], "Selected folder must persist as its physical path")
         let defaults = try JSONDecoder().decode(Configuration.self, from: Data("{}".utf8))
         precondition(defaults.roots == nil && defaults.quietSeconds == 10)
         print("PASS: removed-root pending work cancelled, add root, pause/resume, worker exit, preserved configuration")
