@@ -19,7 +19,15 @@ import Darwin
         try login.setEnabled(true)
         precondition(login.isEnabled, "Previously disabled launchd job must be enabled again")
         for cycle in 0..<2 {
-            try runCommand("/bin/launchctl", ["bootstrap", "gui/\(getuid())", login.agentURL.path])
+            print("Startup verification cycle \(cycle): enabling and registering", terminator: "\n")
+            try login.setEnabled(true)
+            do { try runCommand("/bin/launchctl", ["bootstrap", "gui/\(getuid())", login.agentURL.path]) }
+            catch {
+                print("Startup bootstrap failed in cycle \(cycle): \(error)")
+                print((try? runCommand("/bin/launchctl", ["print", target])) ?? "Job not loaded")
+                print((try? runCommand("/bin/launchctl", ["print-disabled", "gui/\(getuid())"])) ?? "Disabled status unavailable")
+                throw error
+            }
             Thread.sleep(forTimeInterval: 3)
             let running = try runCommand("/bin/launchctl", ["print", target])
             precondition(running.contains("state = running"), "RunAtLoad must start the real native menu app")
@@ -29,12 +37,15 @@ import Darwin
                 precondition(stillRunning.contains("state = running"), "Disabling next-login startup must keep the current app running")
             }
             try runCommand("/bin/launchctl", ["bootout", target])
-            Thread.sleep(forTimeInterval: 2)
+            let deadline = Date().addingTimeInterval(15)
+            while Date() < deadline, (try? runCommand("/bin/launchctl", ["print", target])) != nil {
+                Thread.sleep(forTimeInterval: 0.2)
+            }
         }
         try login.setEnabled(false)
         precondition(!login.isEnabled)
         precondition(!FileManager.default.fileExists(atPath: login.agentURL.path))
-        let saved = try String(contentsOf: state.appendingPathComponent("menu.json"))
+        let saved = try String(contentsOf: state.appendingPathComponent("menu.json"), encoding: .utf8)
         precondition(saved == "{\"paused\":true}")
         print("PASS: disabled login job repaired, real RunAtLoad menu startup twice, startup disable, pause settings retained")
     }
