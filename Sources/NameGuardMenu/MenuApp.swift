@@ -68,6 +68,7 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateMenu(_ existing: NSMenu? = nil) {
         let menu = existing ?? NSMenu()
+        menu.autoenablesItems = false
         menu.delegate = self
         menu.removeAllItems()
         func label(_ title: String) { let row = menu.addItem(withTitle: title, action: nil, keyEquivalent: ""); row.isEnabled = false }
@@ -170,9 +171,9 @@ final class MenuApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
               let updater, arguments[versionIndex + 1] == updater.version else { return }
         let url = URL(fileURLWithPath: arguments[index + 1]).standardizedFileURL
         let base = URL(fileURLWithPath: session.directory).appendingPathComponent("updates").standardizedFileURL
-        guard url.lastPathComponent == "health", url.deletingLastPathComponent().deletingLastPathComponent() == base,
+        guard url.lastPathComponent == "health", url.deletingLastPathComponent().deletingLastPathComponent().path == base.path,
               UUID(uuidString: url.deletingLastPathComponent().lastPathComponent) != nil,
-              session.healthy else { return }
+              session.healthy else { fputs("NameGuard update: health receipt rejected\n", stderr); return }
         try? Data(updater.version.utf8).write(to: url, options: .atomic)
     }
     @objc private func quit() { NSApp.terminate(nil) }

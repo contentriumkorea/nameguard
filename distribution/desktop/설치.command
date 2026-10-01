@@ -20,7 +20,8 @@ if [[ ! -x "$payload/Contents/MacOS/nameguard" ]]; then
   echo 'ZIP을 먼저 풀고 설치.command와 NameGuard Desktop.app을 같은 폴더에 두세요.'; exit 1
 fi
 bundle_id=local.nameguard.desktop.app
-if [[ -f "$install_root/Library/LaunchAgents/local.nameguard.agent.plist" ]]; then
+if [[ -f "$install_root/Library/LaunchAgents/local.nameguard.agent.plist" ]] ||
+   [[ -d "$install_root/Applications/NameGuard.app" && -f "$install_root/Library/Application Support/NameGuard/config.json" && ! -d "$install_root/Applications/NameGuard Desktop.app" ]]; then
   # Upgrade the existing edition in place, keeping Desktop + Dropbox and exclusions.
   app="$install_root/Applications/NameGuard.app"
   state="$install_root/Library/Application Support/NameGuard"

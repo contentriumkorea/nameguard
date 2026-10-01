@@ -12,6 +12,8 @@ permissions:
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +33,8 @@ jobs:
           .build/menu-lifecycle "$PWD/.build/nameguard"
           python3 Tests/distribution.py
           python3 Tests/update-install.py
+          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuardMenu/AppServices.swift Tests/StartupSmoke.swift -o .build/startup-smoke
+          .build/startup-smoke "$PWD/.build/nameguard"
       - name: Save installer ZIP
         uses: actions/upload-artifact@v4
         with:
@@ -38,3 +42,18 @@ jobs:
           path: dist/NameGuard-Desktop.zip
           if-no-files-found: error
           retention-days: 14
+      - name: Publish a new version from main after all checks pass
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' app-info.plist)
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "This version is already published: $version"
+            exit 0
+          fi
+          cp dist/NameGuard-Desktop.zip dist/NameGuard.zip
+          gh release create "$tag" dist/NameGuard.zip --target "$GITHUB_SHA" --title "NameGuard $version" --notes-file distribution/desktop/변경사항.md

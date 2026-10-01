@@ -42,6 +42,10 @@ with tempfile.TemporaryDirectory(prefix='nameguard-update-') as temporary:
         stopped.wait()
         try:
             result = subprocess.run(['/bin/bash', str(helper), str(stopped.pid), str(target), str(candidate), str(workspace), token, '1.2.0', str(state), '100'], timeout=30)
+            if result.returncode != (0 if success else 1):
+                print('Update helper returned', result.returncode, flush=True)
+                if (workspace / 'app.log').exists():
+                    print((workspace / 'app.log').read_text(), flush=True)
             assert result.returncode == (0 if success else 1)
             assert (workspace / 'status').read_text().strip() == ('installed' if success else 'rollback')
             assert (target / ('new-marker' if success else 'old-marker')).exists()

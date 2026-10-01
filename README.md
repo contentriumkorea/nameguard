@@ -4,13 +4,15 @@
 
 ## 사용하기
 
-1. [NameGuard.zip 다운로드](https://github.com/contentriumkorea/nameguard/releases/download/v1.1.0/NameGuard.zip)를 누릅니다.
+1. [NameGuard.zip 다운로드](https://github.com/contentriumkorea/nameguard/releases/latest/download/NameGuard.zip)를 누릅니다.
 2. 압축을 풀고 `설치.command`를 실행합니다.
 3. 맥 상단 바의 **NameGuard** 아이콘을 누릅니다.
 
 새 사용자는 바탕화면부터 감시합니다. **폴더 추가…**에서 여러 폴더를 고를 수 있고, 폴더 이름을 누르면 **감시에서 제거**할 수 있습니다. 하위 폴더도 포함합니다. 선택한 폴더와 일시중지 상태는 다음 로그인에도 유지됩니다.
 
-메뉴에는 감시 중·검사 중·변경 보류·일시중지·감시 중단·오류 상태와 처리 건수가 표시됩니다. **다시 시작**은 감시기를 새로 시작하고, **종료**는 이번 로그인 세션의 앱을 닫습니다. 다음 로그인에는 다시 켜집니다. **자동실행해제.command**는 로그인 자동 실행을 해제합니다.
+메뉴에는 감시 중·검사 중·변경 보류·일시중지·감시 중단·오류 상태와 처리 건수가 표시됩니다. **다시 시작**은 감시기를 새로 시작하고, **종료**는 이번 로그인 세션의 앱을 닫습니다. **로그인 시 자동 실행**이 체크되어 있으면 다음 로그인에 다시 켜집니다. 이 항목을 끄거나 **자동실행해제.command**를 실행하면 자동 실행을 해제합니다. 시스템 설정에서 백그라운드 실행이 차단된 경우 **로그인 항목 설정 열기**에서 허용해 주세요.
+
+**업데이트 확인… → 다운로드 → 재시작·설치**로 새 버전을 설치합니다. 파일 크기·SHA-256·앱 정보를 검증하고 실행에 실패하면 이전 앱으로 복구합니다. 감시 폴더·제외 설정·일시중지·자동 실행 선택은 보존합니다. 1.1에는 업데이트 메뉴가 없으므로 1.2.0은 설치.command를 한 번 실행해 주세요. 이후에는 메뉴에서 업데이트할 수 있습니다.
 
 기존 NameGuard가 설치된 맥에는 같은 위치에 업데이트하며 기존 Desktop + Dropbox 설정, 제외 폴더와 대기 시간을 보존합니다. 재설치해도 선택한 폴더를 바탕화면으로 덮어쓰지 않습니다. 이름에 Desktop이 들어가는 ZIP과 앱은 기존 배포본과의 호환을 위한 파일명이며 감시 범위는 메뉴에서 변경할 수 있습니다.
 
@@ -22,7 +24,7 @@
 - 열린 파일과 실행 중인 주요 편집 프로그램이 있으면 변경을 보류합니다. 숨김 파일, 앱·사진·편집 프로젝트 패키지, 심볼릭 링크는 제외하고 목적지 덮어쓰기를 금지합니다.
 - APFS 기준입니다. Mac에서 이름 변경이 성공해도 Dropbox를 통해 Windows에 반영되는지는 별도 확인이 필요합니다.
 
-설정과 로그는 `~/Library/Application Support/NameGuardDesktop/`에 보관합니다. 기존 설치를 업데이트한 경우에는 기존 `NameGuard/` 폴더를 계속 사용합니다. 자동 업데이트는 없습니다.
+설정과 로그는 `~/Library/Application Support/NameGuardDesktop/`에 보관합니다. 기존 설치를 업데이트한 경우에는 기존 `NameGuard/` 폴더를 계속 사용합니다. 앱을 직접 열어도 같은 설정을 읽습니다. 업데이트는 사용자가 메뉴에서 확인하고 설치할 때만 진행합니다.
 
 ## 개발
 
@@ -35,6 +37,6 @@ bash test.sh                  # 임시 폴더 기반 실제 맥 검사
 bash build-desktop-release.sh # Apple Silicon + Intel 설치 ZIP
 ```
 
-`swift test`로 Swift Package Manager 구성도 검사할 수 있습니다. GitHub Actions는 Universal 빌드, 코어 검사, 메뉴 상태 판정·설정 보존, 폴더 추가·제거·일시중지·재개, 배포 설치와 기존 설정 보존을 임시 폴더로 검사합니다. 실제 메뉴 클릭·폴더 선택 창·macOS 권한 승인과 실제 Dropbox 동기화는 사용자 맥에서 확인해야 합니다. `Tests/live_check.py`는 실제 사용자 폴더에 테스트 파일을 만들므로 CI에서 실행하지 않습니다.
+`swift test`로 Swift Package Manager 구성도 검사할 수 있습니다. GitHub Actions는 Universal 빌드, 코어 검사, 메뉴 상태 판정·설정 보존, 폴더 추가·제거·일시중지·재개, 배포 설치, 업데이트 교체·실패 복구, launchd 재등록·자동 실행과 기존 설정 보존을 임시 폴더로 검사합니다. 사용자 맥의 실제 재부팅·macOS 권한 승인과 Dropbox 동기화는 별도 확인 항목입니다. main에 새 버전을 올리면 검증 통과 후 해당 버전의 설치 ZIP을 GitHub에 자동 게시합니다. `Tests/live_check.py`는 실제 사용자 폴더에 테스트 파일을 만들므로 CI에서 실행하지 않습니다.
 
 구현은 [Apple의 폴더 선택 창](https://developer.apple.com/documentation/appkit/nsopenpanel)과 [프로세스 상태 API](https://developer.apple.com/documentation/foundation/process/isrunning)를 사용합니다. 감시기는 메뉴와 별도 프로세스에서 실행하며 폴더 변경 때 기존 감시기를 종료하고 새 설정으로 시작합니다.
