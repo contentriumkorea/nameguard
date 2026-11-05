@@ -3,7 +3,7 @@ name: NameGuard macOS
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, rust-migration]
   pull_request:
 
 permissions:
@@ -14,37 +14,55 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Build universal app and run portable macOS checks
+      - name: Prepare Rust targets and dependency lock
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          test -f Cargo.lock || cargo generate-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: nameguard-rust-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}-${{ hashFiles('Sources/Rust/**') }}
+          restore-keys: nameguard-rust-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}-
+      - name: Check Rust core and build universal application
+        shell: bash
+        run: |
+          set -euo pipefail
+          export MACOSX_DEPLOYMENT_TARGET=13.0
+          cargo test --locked -- --test-threads=1
+          bash build.sh
+          bash build-desktop-release.sh
+      - name: Verify native behavior, settings migration and app updates
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          export NAMEGUARD_SDK="$(xcrun --sdk macosx --show-sdk-path)"
-          bash build-desktop-release.sh
-          bash build.sh
-          swift test
-          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuard/Core.swift Tests/Smoke.swift -o .build/smoke-ci
-          .build/smoke-ci
-          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuardMenu/MenuState.swift Tests/MenuSmoke.swift -o .build/menu-smoke
-          .build/menu-smoke
-          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuard/Core.swift Sources/NameGuard/Watcher.swift Sources/NameGuardMenu/MenuState.swift Sources/NameGuardMenu/MenuSession.swift Tests/MenuLifecycle.swift -o .build/menu-lifecycle
-          .build/menu-lifecycle "$PWD/.build/nameguard"
+          export NAMEGUARD_TEST_BINARY="$PWD/.build/nameguard"
+          export NAMEGUARD_TEST_ZIP="$PWD/dist/NameGuard-Desktop.zip"
+          cargo test --locked -- --test-threads=1
+          python3 Tests/integration.py
           python3 Tests/distribution.py
           python3 Tests/update-install.py
-          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuardMenu/AppServices.swift Tests/StartupSmoke.swift -o .build/startup-smoke
-          .build/startup-smoke "$PWD/.build/nameguard"
-          xcrun swiftc -sdk "$NAMEGUARD_SDK" Sources/NameGuardMenu/AppServices.swift Sources/NameGuardMenu/UpdateService.swift Tests/UpdateDownloadSmoke.swift -o .build/update-download-smoke
-          python3 Tests/update-download.py
       - name: Save installer ZIP
         uses: actions/upload-artifact@v4
         with:
           name: NameGuard-macOS
           path: dist/NameGuard-Desktop.zip
           if-no-files-found: error
+          retention-days: 14
+      - name: Save reproducible dependency lock
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NameGuard-Cargo-lock
+          path: Cargo.lock
+          if-no-files-found: warn
           retention-days: 14
       - name: Publish a new version from main after all checks pass
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -61,3 +79,4 @@ jobs:
           fi
           cp dist/NameGuard-Desktop.zip dist/NameGuard.zip
           gh release create "$tag" dist/NameGuard.zip --target "$GITHUB_SHA" --title "NameGuard $version" --notes-file distribution/desktop/변경사항.md
+
