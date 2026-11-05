@@ -21,7 +21,9 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           test -f Cargo.lock || cargo generate-lockfile
-      - uses: actions/cache@v4
+          cargo fmt
+      - uses: actions/cache/restore@v4
+        id: rust-cache
         with:
           path: |
             ~/.cargo/registry
@@ -49,6 +51,9 @@ jobs:
           python3 Tests/integration.py
           python3 Tests/distribution.py
           python3 Tests/update-install.py
+          # Verify the unchanged 1.2.1 updater can validate the new Rust package.
+          xcrun swiftc -sdk "$(xcrun --sdk macosx --show-sdk-path)" Sources/NameGuardMenu/AppServices.swift Sources/NameGuardMenu/UpdateService.swift Tests/UpdateDownloadSmoke.swift -o .build/update-download-smoke
+          python3 Tests/update-download.py
       - name: Save installer ZIP
         uses: actions/upload-artifact@v4
         with:
@@ -56,14 +61,24 @@ jobs:
           path: dist/NameGuard-Desktop.zip
           if-no-files-found: error
           retention-days: 14
-      - name: Save reproducible dependency lock
+      - name: Save reproducible Rust source and dependency lock
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: NameGuard-Cargo-lock
-          path: Cargo.lock
+          name: NameGuard-Rust-source
+          path: |
+            Cargo.lock
+            Sources/Rust/*.rs
           if-no-files-found: warn
           retention-days: 14
+      - uses: actions/cache/save@v4
+        if: always() && steps.rust-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ steps.rust-cache.outputs.cache-primary-key }}
       - name: Publish a new version from main after all checks pass
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
@@ -79,4 +94,3 @@ jobs:
           fi
           cp dist/NameGuard-Desktop.zip dist/NameGuard.zip
           gh release create "$tag" dist/NameGuard.zip --target "$GITHUB_SHA" --title "NameGuard $version" --notes-file distribution/desktop/변경사항.md
-

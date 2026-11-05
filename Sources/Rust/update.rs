@@ -118,6 +118,7 @@ pub fn health_receipt(path:&Path,directory:&Path) -> Option<PathBuf> {
         value["assets"][0]["browser_download_url"]="https://example.com/evil.zip".into();assert!(Release::parse(value.clone()).is_err());
         value["prerelease"]=true.into();assert!(Release::parse(value).is_err());
         validate_entries("NameGuard-Desktop/NameGuard Desktop.app/Contents/Info.plist\n")?;
+        validate_entries(&String::from_utf8_lossy(b"NameGuard-Desktop/\xeb\xb3?\n"))?;
         for entry in ["/tmp/evil","NameGuard-Desktop/../../evil","NameGuard-Desktop/a\\file","Other.app/file"] {assert!(validate_entries(entry).is_err());}Ok(())
     }
     #[test] fn health_cannot_escape_state() -> Result<()> {

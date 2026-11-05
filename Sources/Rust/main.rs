@@ -14,7 +14,7 @@ fn execute() -> Result<()> {
     let option=|name:&str|args.iter().position(|a|a==name).and_then(|i|args.get(i+1)).cloned();
     if args.iter().any(|a|a=="--help") {println!("NameGuard {}\nnameguard --menu | --watch | --audit | --roots [--config PATH] [--state-dir PATH]",env!("CARGO_PKG_VERSION"));return Ok(());}
     if args.iter().any(|a|a=="--version") {println!("{}",env!("CARGO_PKG_VERSION"));return Ok(());}
-    unsafe {libc::signal(libc::SIGTERM,stop as libc::sighandler_t);libc::signal(libc::SIGINT,stop as libc::sighandler_t);}
+    unsafe {libc::signal(libc::SIGTERM,stop as *const () as libc::sighandler_t);libc::signal(libc::SIGINT,stop as *const () as libc::sighandler_t);}
     let executable=std::env::current_exe()?;
     let directory=option("--state-dir").map(PathBuf::from).unwrap_or_else(||services::default_directory(&executable,&home()));
     let config_path=option("--config").map(PathBuf::from).unwrap_or_else(||directory.join("config.json"));

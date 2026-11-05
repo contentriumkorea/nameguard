@@ -1,9 +1,13 @@
 use crate::core::*;
 use crate::watcher::command_output;
 use serde_json::{json, Value};
-use std::{fs, path::{Path,PathBuf}, process::{Child,Command,Stdio}, thread, time::{Duration,Instant}};
+use std::{fs, path::{Path,PathBuf}, process::{Child,Command}, thread, time::{Duration,Instant}};
 
-pub fn run(program: &str, args: &[&str]) -> Result<String> { Ok(String::from_utf8(command_output(program,args,Duration::from_secs(15))?)?) }
+pub fn run(program: &str, args: &[&str]) -> Result<String> {
+    // unzip can emit locale-sanitized non-UTF-8 names. Its ASCII path structure
+    // is used for validation; ditto extracts the original archive entry bytes.
+    Ok(String::from_utf8_lossy(&command_output(program,args,Duration::from_secs(15))?).into_owned())
+}
 pub fn bundle(executable: &Path) -> Option<PathBuf> {
     let app = executable.parent()?.parent()?.parent()?;
     (app.extension().is_some_and(|s|s == "app")).then(||app.to_owned())
