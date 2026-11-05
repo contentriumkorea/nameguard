@@ -39,4 +39,4 @@ bash build-desktop-release.sh # Apple Silicon + Intel 설치 ZIP
 
 `cargo test --locked`로 Rust 검사를 실행합니다. Universal 빌드 전에 `rustup target add aarch64-apple-darwin x86_64-apple-darwin`을 실행합니다. GitHub Actions는 코어 검사, 폴더 추가·제거·일시중지·재개, 열린 파일·편집 프로그램·동기화 반복 보류, 배포 설치, 다운로드 검증, 업데이트 교체·실패 복구, launchd 재등록·자동 실행과 기존 설정 보존을 임시 폴더로 검사합니다. 사용자 맥의 실제 재부팅·macOS 권한 승인과 Dropbox 동기화는 별도 확인 항목입니다. main에 새 버전을 올리면 검증 통과 후 해당 버전의 설치 ZIP을 GitHub에 자동 게시합니다. `Tests/live_check.py`는 실제 사용자 폴더에 테스트 파일을 만들므로 CI에서 실행하지 않습니다.
 
-구현은 [Apple의 폴더 선택 창](https://developer.apple.com/documentation/appkit/nsopenpanel)과 [프로세스 상태 API](https://developer.apple.com/documentation/foundation/process/isrunning)를 사용합니다. 감시기는 메뉴와 별도 프로세스에서 실행하며 폴더 변경 때 기존 감시기를 종료하고 새 설정으로 시작합니다.
+화면은 [Apple의 폴더 선택 창](https://developer.apple.com/documentation/appkit/nsopenpanel)과 기본 메뉴 UI를 사용합니다. 감시기는 메뉴와 별도 프로세스에서 실행하며 폴더 변경 때 기존 감시기를 종료하고 새 설정으로 시작합니다.

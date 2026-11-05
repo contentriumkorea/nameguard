@@ -113,9 +113,15 @@ class Integration(unittest.TestCase):
         alias.symlink_to(self.root, target_is_directory=True)
         self.config["roots"].append(str(alias))
         self.config["excludedPaths"] = [str(excluded)]
+        korean = self.root / unicodedata.normalize("NFD", "제외폴더")
+        korean.mkdir()
+        (korean / unicodedata.normalize("NFD", "유지.txt")).touch()
+        self.config["excludedPaths"].append(str(self.root / "제외폴더"))
         self.start()
         time.sleep(4)
         self.assertFalse(self.nfc(excluded, "제외.txt"))
+        self.assertFalse(self.nfc(self.root, "제외폴더"))
+        self.assertFalse(self.nfc(korean, "유지.txt"))
         state = json.loads((self.state / "status.json").read_text())
         self.assertEqual(len(state["roots"]), 1)
 
